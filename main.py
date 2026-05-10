@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine
-from routes import auth, products, orders, customers, inventory, analytics
+from routes import auth, products, orders, customers, inventory, analytics, users
 
 # Create all PostgreSQL tables automatically on startup
 Base.metadata.create_all(bind=engine)
@@ -31,6 +31,7 @@ app.include_router(orders.router,    prefix=f"{V1}/orders",    tags=["Orders"])
 app.include_router(customers.router, prefix=f"{V1}/customers", tags=["Customers"])
 app.include_router(inventory.router, prefix=f"{V1}/inventory", tags=["Inventory"])
 app.include_router(analytics.router, prefix=f"{V1}/analytics", tags=["Analytics"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 
 @app.get("/")
 def root():

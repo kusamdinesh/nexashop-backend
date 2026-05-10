@@ -10,7 +10,7 @@ from schemas.product import (
     ProductCreate, ProductUpdate, ProductResponse,
     ProductListResponse, CategoryCreate, CategoryResponse
 )
-from config.auth_utils import get_current_user
+from config.auth_utils import get_current_user, require_manager, require_admin
 from models.user import User
 import math
 
@@ -22,7 +22,7 @@ router = APIRouter()
 def create_category(
     data: CategoryCreate,
     db: Session = Depends(get_pg_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_manager)
 ):
     # Check if category already exists
     existing = db.query(Category).filter(Category.name == data.name).first()
@@ -50,7 +50,7 @@ def get_categories(
 def create_product(
     data: ProductCreate,
     db: Session = Depends(get_pg_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_manager)
 ):
     # Check SKU is unique
     existing = db.query(Product).filter(Product.sku == data.sku).first()
@@ -134,7 +134,7 @@ def update_product(
     product_id: UUID,
     data: ProductUpdate,
     db: Session = Depends(get_pg_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_manager)
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
@@ -166,7 +166,7 @@ def update_product(
 def delete_product(
     product_id: UUID,
     db: Session = Depends(get_pg_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:

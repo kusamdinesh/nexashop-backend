@@ -10,7 +10,7 @@ from schemas.customer import (
     CustomerCreate, CustomerUpdate,
     CustomerResponse, CustomerListResponse
 )
-from config.auth_utils import get_current_user
+from config.auth_utils import get_current_user, require_manager, require_admin
 from models.user import User
 import math
 
@@ -20,7 +20,7 @@ router = APIRouter()
 def create_customer(
     data: CustomerCreate,
     db: Session = Depends(get_pg_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_manager)
 ):
     # Check if email already exists
     existing = db.query(Customer).filter(Customer.email == data.email).first()
@@ -104,7 +104,7 @@ def update_customer(
     customer_id: UUID,
     data: CustomerUpdate,
     db: Session = Depends(get_pg_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_manager)
 ):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
@@ -135,7 +135,7 @@ def update_customer(
 def delete_customer(
     customer_id: UUID,
     db: Session = Depends(get_pg_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_admin)
 ):
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:

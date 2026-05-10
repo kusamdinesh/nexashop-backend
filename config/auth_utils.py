@@ -11,10 +11,10 @@ from config.settings import settings
 pwd_context = CryptContext(
     schemes=["argon2"],
     deprecated="auto",
-    argon2__type="ID",        # ID = Argon2id variant
-    argon2__memory_cost=65536, # 64MB memory — harder to brute force
-    argon2__time_cost=3,       # 3 iterations
-    argon2__parallelism=4      # 4 parallel threads
+    argon2__type="ID",
+    argon2__memory_cost=65536,
+    argon2__time_cost=3,
+    argon2__parallelism=4
 )
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -38,7 +38,7 @@ def create_access_token(data: dict) -> str:
         algorithm=settings.ALGORITHM
     )
 
-# ── Current User Dependency ─────────────────────────
+# ── Get Current User ────────────────────────────────
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_pg_db)
@@ -58,9 +58,32 @@ def get_current_user(
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is inactive")
     return user
 
-def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+# ── Role Dependencies ───────────────────────────────
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """Only admins can access"""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
     return current_user
+
+def require_manager(current_user: User = Depends(get_current_user)) -> User:
+    """Admins and managers can access"""
+    if current_user.role not in ["admin", "manager"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Manager access required"
+        )
+    return current_user
+
+def require_staff(current_user: User = Depends(get_current_user)) -> User:
+    """All authenticated users can access"""
+    return current_user
+
+# ── Keep backward compatibility ──────────────────────
+get_admin_user = require_admin
