@@ -11,6 +11,8 @@ from models.product import Product, Category
 from models.user import User
 from config.auth_utils import get_current_user, require_manager
 from pydantic import BaseModel
+from fastapi_cache.decorator import cache
+from fastapi_cache import FastAPICache
 
 router = APIRouter()
 
@@ -20,6 +22,7 @@ class StockAdjustment(BaseModel):
     reason: str
 
 @router.get("/")
+@cache(expire=120)
 def get_inventory(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -97,7 +100,7 @@ def get_inventory(
     }
 
 @router.post("/adjust")
-def adjust_stock(
+async def adjust_stock(
     data: StockAdjustment,
     db: Session = Depends(get_pg_db),
     current_user: User = Depends(require_manager)
@@ -144,6 +147,7 @@ def adjust_stock(
         "timestamp": datetime.utcnow()
     })
 
+    await FastAPICache.clear(namespace="nexashop-cache")
     return {
         "message": "Stock adjusted successfully",
         "product": product.name,

@@ -12,12 +12,14 @@ from schemas.customer import (
 )
 from config.auth_utils import get_current_user, require_manager, require_admin
 from models.user import User
+from fastapi_cache.decorator import cache
+from fastapi_cache import FastAPICache
 import math
 
 router = APIRouter()
 
 @router.post("/", response_model=CustomerResponse)
-def create_customer(
+async def create_customer(
     data: CustomerCreate,
     db: Session = Depends(get_pg_db),
     current_user: User = Depends(require_manager)
@@ -45,9 +47,11 @@ def create_customer(
         "timestamp": datetime.utcnow()
     })
 
+    await FastAPICache.clear(namespace="nexashop-cache")
     return customer
 
 @router.get("/", response_model=CustomerListResponse)
+@cache(expire=180)
 def get_customers(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -100,7 +104,7 @@ def get_customer(
     return customer
 
 @router.put("/{customer_id}", response_model=CustomerResponse)
-def update_customer(
+async def update_customer(
     customer_id: UUID,
     data: CustomerUpdate,
     db: Session = Depends(get_pg_db),
@@ -129,10 +133,11 @@ def update_customer(
         "timestamp": datetime.utcnow()
     })
 
+    await FastAPICache.clear(namespace="nexashop-cache")
     return customer
 
 @router.delete("/{customer_id}")
-def delete_customer(
+async def delete_customer(
     customer_id: UUID,
     db: Session = Depends(get_pg_db),
     current_user: User = Depends(require_admin)
@@ -157,4 +162,5 @@ def delete_customer(
         "timestamp": datetime.utcnow()
     })
 
+    await FastAPICache.clear(namespace="nexashop-cache")
     return {"message": "Customer deactivated successfully"}

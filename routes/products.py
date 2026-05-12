@@ -6,6 +6,8 @@ from uuid import UUID
 from datetime import datetime
 from database import get_pg_db, get_mongo_db
 from models.product import Product, Category
+from fastapi_cache.decorator import cache
+from fastapi_cache import FastAPICache
 from schemas.product import (
     ProductCreate, ProductUpdate, ProductResponse,
     ProductListResponse, CategoryCreate, CategoryResponse
@@ -38,6 +40,7 @@ def create_category(
     return category
 
 @router.get("/categories", response_model=list[CategoryResponse])
+@cache(expire=600)
 def get_categories(
     db: Session = Depends(get_pg_db),
     current_user: User = Depends(get_current_user)
@@ -47,7 +50,7 @@ def get_categories(
 # ── Product Routes ──────────────────────────────────
 
 @router.post("/", response_model=ProductResponse)
-def create_product(
+async def create_product(
     data: ProductCreate,
     db: Session = Depends(get_pg_db),
     current_user: User = Depends(require_manager)
@@ -75,9 +78,11 @@ def create_product(
         "timestamp": datetime.utcnow()
     })
 
+    await FastAPICache.clear(namespace="nexashop-cache")
     return product
 
 @router.get("/", response_model=ProductListResponse)
+@cache(expire=300)  # 5 minutes
 def get_products(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
@@ -130,7 +135,7 @@ def get_product(
     return product
 
 @router.put("/{product_id}", response_model=ProductResponse)
-def update_product(
+async def update_product(
     product_id: UUID,
     data: ProductUpdate,
     db: Session = Depends(get_pg_db),
@@ -160,10 +165,11 @@ def update_product(
         "timestamp": datetime.utcnow()
     })
 
+    await FastAPICache.clear(namespace="nexashop-cache")
     return product
 
 @router.delete("/{product_id}")
-def delete_product(
+async def delete_product(
     product_id: UUID,
     db: Session = Depends(get_pg_db),
     current_user: User = Depends(require_admin)
@@ -188,4 +194,5 @@ def delete_product(
         "timestamp": datetime.utcnow()
     })
 
+    await FastAPICache.clear(namespace="nexashop-cache")
     return {"message": "Product deactivated successfully"}

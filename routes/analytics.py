@@ -8,10 +8,12 @@ from models.user import User
 from models.customer import Customer
 from models.product import Product, Category
 from models.order import Order
+from fastapi_cache.decorator import cache
 
 router = APIRouter()
 
 @router.get("/summary")
+@cache(expire=120)
 def get_summary(
     db: Session = Depends(get_pg_db),
     current_user: User = Depends(get_current_user)
@@ -34,6 +36,7 @@ def get_summary(
     }
 
 @router.get("/revenue-over-time")
+@cache(expire=300)
 def get_revenue_over_time(
     days: int = Query(30, ge=7, le=365),
     db: Session = Depends(get_pg_db),
@@ -63,6 +66,7 @@ def get_revenue_over_time(
     return result
 
 @router.get("/orders-by-status")
+@cache(expire=120)
 def get_orders_by_status(
     db: Session = Depends(get_pg_db),
     current_user: User = Depends(get_current_user)
@@ -75,6 +79,7 @@ def get_orders_by_status(
     return [{"status": r.status, "count": r.count} for r in results]
 
 @router.get("/top-categories")
+@cache(expire=600)
 def get_top_categories(
     db: Session = Depends(get_pg_db),
     current_user: User = Depends(get_current_user)
@@ -91,6 +96,7 @@ def get_top_categories(
     return [{"category": r.name, "count": r.count} for r in results]
 
 @router.get("/top-products")
+@cache(expire=300)
 def get_top_products(
     limit: int = Query(5, ge=1, le=20),
     db: Session = Depends(get_pg_db),
