@@ -18,6 +18,8 @@ from schemas.order import (
     OrderStatusUpdate, OrderItemResponse
 )
 from config.auth_utils import get_current_user
+from config.email_service import send_order_confirmation, send_order_status_update
+from models.customer import Customer
 
 router = APIRouter()
 
@@ -71,7 +73,7 @@ def create_order(
 
     # Calculate totals
     subtotal = 0.0
-    order_items = []
+    order_items_data = []
 
     for item_data in data.items:
         product = db.query(Product).filter(
@@ -94,7 +96,7 @@ def create_order(
         item_total = product.price * item_data.quantity
         subtotal += item_total
 
-        order_items.append({
+        order_items_data.append({
             "product": product,
             "quantity": item_data.quantity,
             "unit_price": product.price,
@@ -120,7 +122,7 @@ def create_order(
     db.flush()
 
     # Create order items and update stock
-    for item_data in order_items:
+    for item_data in order_items_data:
         order_item = OrderItem(
             order_id=order.id,
             product_id=item_data["product"].id,
@@ -129,8 +131,6 @@ def create_order(
             total_price=item_data["total_price"]
         )
         db.add(order_item)
-
-        # Deduct stock
         item_data["product"].stock_quantity -= item_data["quantity"]
 
     # Update customer stats
@@ -151,6 +151,27 @@ def create_order(
         "created_by": current_user.email,
         "timestamp": datetime.utcnow()
     })
+
+    # Send confirmation email
+    email_items = [
+        {
+            "product_name": item_data["product"].name,
+            "quantity": item_data["quantity"],
+            "unit_price": item_data["unit_price"],
+            "total_price": item_data["total_price"]
+        }
+        for item_data in order_items_data
+    ]
+    send_order_confirmation(
+        customer_email=customer.email,
+        customer_name=f"{customer.first_name} {customer.last_name}",
+        order_number=order.order_number,
+        items=email_items,
+        subtotal=subtotal,
+        tax=tax,
+        total=total,
+        notes=data.notes
+    )
 
     return get_order_with_items(order, db)
 
@@ -217,6 +238,15 @@ def update_order_status(
 
     old_status = order.status
     order.status = data.status
+    # Send status update email
+    customer = db.query(Customer).filter(Customer.id == order.customer_id).first()
+    if customer and data.status in ["processing", "shipped", "delivered", "cancelled"]:
+        send_order_status_update(
+            customer_email=customer.email,
+            customer_name=f"{customer.first_name} {customer.last_name}",
+            order_number=order.order_number,
+            new_status=data.status
+        )
     db.commit()
     db.refresh(order)
 

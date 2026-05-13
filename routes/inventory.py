@@ -13,6 +13,7 @@ from config.auth_utils import get_current_user, require_manager
 from pydantic import BaseModel
 from fastapi_cache.decorator import cache
 from fastapi_cache import FastAPICache
+from config.email_service import send_low_stock_alert
 
 router = APIRouter()
 
@@ -123,6 +124,23 @@ async def adjust_stock(
 
     old_quantity = product.stock_quantity
     product.stock_quantity = new_quantity
+    # Check for low stock and alert admin
+    low_stock_products = db.query(Product).filter(
+        Product.is_active == True,
+        Product.stock_quantity < 10
+    ).all()
+
+    if low_stock_products:
+        alert_products = [
+            {
+                "name": p.name,
+                "sku": p.sku,
+                "stock": p.stock_quantity,
+                "status": "out" if p.stock_quantity == 0 else "low"
+            }
+            for p in low_stock_products
+        ]
+        send_low_stock_alert(alert_products)
     db.commit()
 
     # Log to MongoDB

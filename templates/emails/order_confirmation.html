@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmed</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: #f5f5f7; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .header { background: #0071e3; padding: 32px; text-align: center; }
+    .header h1 { color: white; margin: 0; font-size: 24px; font-weight: 700; }
+    .header p { color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px; }
+    .body { padding: 32px; }
+    .greeting { font-size: 18px; font-weight: 600; color: #1d1d1f; margin-bottom: 8px; }
+    .subtitle { color: #6e6e73; font-size: 15px; margin-bottom: 32px; }
+    .order-box { background: #f5f5f7; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+    .order-number { font-size: 13px; color: #6e6e73; margin-bottom: 4px; }
+    .order-id { font-size: 20px; font-weight: 700; color: #0071e3; font-family: monospace; }
+    .divider { border: none; border-top: 1px solid #e5e5e5; margin: 24px 0; }
+    .items-title { font-size: 13px; font-weight: 600; color: #6e6e73; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; }
+    .item-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .item-name { font-size: 14px; color: #1d1d1f; }
+    .item-qty { font-size: 13px; color: #6e6e73; }
+    .item-price { font-size: 14px; font-weight: 600; color: #1d1d1f; }
+    .totals { margin-top: 16px; }
+    .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: #6e6e73; }
+    .total-final { display: flex; justify-content: space-between; padding: 12px 0 0; font-size: 16px; font-weight: 700; color: #1d1d1f; border-top: 1px solid #e5e5e5; margin-top: 6px; }
+    .footer { background: #f5f5f7; padding: 24px; text-align: center; }
+    .footer p { color: #6e6e73; font-size: 13px; margin: 0; }
+    .badge { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 6px 16px; border-radius: 980px; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🛒 NexaShop</h1>
+      <p>Order Confirmation</p>
+    </div>
+
+    <div class="body">
+      <div class="badge">✅ Order Confirmed</div>
+      <div class="greeting">Hi {{ customer_name }},</div>
+      <div class="subtitle">Thank you for your order! We've received it and it's being processed.</div>
+
+      <div class="order-box">
+        <div class="order-number">Order Number</div>
+        <div class="order-id">{{ order_number }}</div>
+      </div>
+
+      <div class="items-title">Order Items</div>
+
+      {% for item in items %}
+      <div class="item-row">
+        <div>
+          <div class="item-name">{{ item.product_name }}</div>
+          <div class="item-qty">Qty: {{ item.quantity }} × ${{ "%.2f"|format(item.unit_price) }}</div>
+        </div>
+        <div class="item-price">${{ "%.2f"|format(item.total_price) }}</div>
+      </div>
+      {% endfor %}
+
+      <div class="totals">
+        <div class="total-row">
+          <span>Subtotal</span>
+          <span>${{ "%.2f"|format(subtotal) }}</span>
+        </div>
+        <div class="total-row">
+          <span>Tax (10%)</span>
+          <span>${{ "%.2f"|format(tax) }}</span>
+        </div>
+        <div class="total-final">
+          <span>Total</span>
+          <span>${{ "%.2f"|format(total) }}</span>
+        </div>
+      </div>
+
+      {% if notes %}
+      <hr class="divider">
+      <div class="items-title">Order Notes</div>
+      <p style="color: #6e6e73; font-size: 14px;">{{ notes }}</p>
+      {% endif %}
+    </div>
+
+    <div class="footer">
+      <p>Thank you for shopping with NexaShop 🛒</p>
+      <p style="margin-top: 8px;">If you have any questions please contact us.</p>
+    </div>
+  </div>
+</body>
+</html>

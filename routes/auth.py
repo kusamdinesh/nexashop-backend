@@ -9,6 +9,7 @@ from config.auth_utils import (
     hash_password, verify_password,
     create_access_token, get_current_user
 )
+from config.email_service import send_welcome_email
 
 router = APIRouter()
 
@@ -29,6 +30,11 @@ def register(user_data: UserRegister, db: Session = Depends(get_pg_db)):
         hashed_password=hash_password(user_data.password)
     )
     db.add(new_user)
+    # Send welcome email
+    send_welcome_email(
+        user_email=new_user.email,
+        full_name=new_user.full_name
+    )
     db.commit()
     db.refresh(new_user)
 
